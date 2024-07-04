@@ -88,6 +88,7 @@
   width: 480px;
   height: 360px;
   margin-left: -400px;
+  pointer-events: none;
 }
 
 .center::after {
@@ -95,6 +96,7 @@
   width: 240px;
   height: 180px;
   z-index: -1;
+  pointer-events: none;
 }
 
 .center::before,
@@ -109,6 +111,17 @@
 .logo {
   position: relative;
 }
+
+.main button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin: 8px 0;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
 /* Enable hover only on non-touch devices */
 @media (hover: hover) and (pointer: fine) {
   .card:hover {
