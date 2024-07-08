@@ -7,11 +7,12 @@ import CoinbaseWalletSdk, {
 } from "@coinbase/wallet-sdk";
 import { ethers } from "ethers";
 import Wallet from "./Wallet";
+import ErrorBoundary from "./ErrorBoundary";
 
 const getCoinbaseWalletProvider = () => {
   const sdk = new CoinbaseWalletSdk({
     appName: "Unstoppable Domains",
-    appChainIds: [1, 137],
+    appChainIds: [1, 137, 80002],
   });
   const provider = sdk.makeWeb3Provider();
   return provider;
@@ -26,14 +27,12 @@ export default function Home() {
   const [chainId, setChainId] = useState<number | null>(null);
 
   const handleAccessWallet = async () => {
-    if (!provider) return;
+    if (!ethersProvider) return;
     try {
-      const newAddresses = await provider.request<string[]>({
-        method: "eth_requestAccounts",
-      });
+      const newAddresses = await ethersProvider.send("eth_requestAccounts", []);
       setAddresses(newAddresses);
     } catch (e) {
-      alert((e as Error).message);
+      console.error((e as Error).message);
     }
   };
 
@@ -43,7 +42,7 @@ export default function Home() {
       await provider.disconnect();
       window.location.reload();
     } catch (e) {
-      alert((e as Error).message);
+      console.error((e as Error).message);
     }
   };
 
@@ -81,36 +80,47 @@ export default function Home() {
       setChainId(Number(newChainId));
     });
 
+    walletProvider.on("accountsChanged", (accounts) => {
+      console.log("account changed", accounts);
+      setAddresses(accounts);
+    });
+
+    walletProvider.on("message", (message) => {
+      console.log("new message event", message);
+    });
+
     return () => {
       walletProvider.removeAllListeners();
     };
   }, [ethersProvider]);
 
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>Coinbase Wallet SDK + typed data v4 sig</p>
-        <p>Connection status: {connected ? "connected" : "disconnected"}</p>
-        {connected && chainId && <p>Chain ID: {chainId}</p>}
-
-        {addresses.length === 0 ? (
-          <button onClick={handleAccessWallet}>Access Coinbase Wallet</button>
-        ) : (
-          <button onClick={handleDisconnectWallet}>Disconnect</button>
-        )}
-      </div>
-
-      <div className={styles.center}>
+    <ErrorBoundary>
+      <main className={styles.main}>
         <div className={styles.description}>
-          {ethersProvider && addresses.length > 0 && chainId && (
-            <Wallet
-              ethersProvider={ethersProvider}
-              addresses={addresses}
-              chainId={chainId}
-            />
+          <p>Coinbase Wallet SDK + typed data v4 sig</p>
+          <p>Connection status: {connected ? "connected" : "disconnected"}</p>
+          {connected && chainId && <p>Chain ID: {chainId}</p>}
+
+          {addresses.length === 0 ? (
+            <button onClick={handleAccessWallet}>Access Coinbase Wallet</button>
+          ) : (
+            <button onClick={handleDisconnectWallet}>Disconnect</button>
           )}
         </div>
-      </div>
-    </main>
+
+        <div className={styles.center}>
+          <div className={styles.description}>
+            {ethersProvider && addresses.length > 0 && chainId && (
+              <Wallet
+                ethersProvider={ethersProvider}
+                addresses={addresses}
+                chainId={chainId}
+              />
+            )}
+          </div>
+        </div>
+      </main>
+    </ErrorBoundary>
   );
 }
